@@ -24,7 +24,33 @@ bool ShaderManager::init()
         shader->addUniform("minElevation");
         shader->addUniform("maxElevation");
         shader->addUniform("heightMap");
-        shader->addUniform("losMap");
+        shader->addUniform("depthMap");
+        shader->addUniform("observerPosition");
+        shader->addUniform("farPlane");
+        shader->addUniform("maxDistance");
+
+        shader->addAttribute("position");
+        shader->addAttribute("textureCoords");
+
+        if (!shader->init())
+            return false;
+    }
+
+    // Observer Shader
+    {
+        Shader *shader = new Shader(ShaderType::ObserverShader);
+        mShaders.insert(shader->type(), shader);
+
+        shader->addPath(QOpenGLShader::Vertex, ":/Resources/Shaders/Observer.vert");
+        shader->addPath(QOpenGLShader::Geometry, ":/Resources/Shaders/Observer.geom");
+        shader->addPath(QOpenGLShader::Fragment, ":/Resources/Shaders/Observer.frag");
+
+        shader->setUniformArray("VPs[%1]", 6);
+        shader->addUniform("minElevation");
+        shader->addUniform("maxElevation");
+        shader->addUniform("heightMap");
+        shader->addUniform("observerPosition");
+        shader->addUniform("farPlane");
 
         shader->addAttribute("position");
         shader->addAttribute("textureCoords");

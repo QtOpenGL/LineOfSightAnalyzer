@@ -24,9 +24,7 @@ public: \
 enum class ShaderType { //
     None,
     TerrainShader,
-    ScreenShader,
     ObserverShader,
-    ObserverComputeShader
 };
 
 #endif // COMMON_H

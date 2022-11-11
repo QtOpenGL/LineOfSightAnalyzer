@@ -72,7 +72,7 @@ void Controller::init()
             mObservers[i]->setPosition(QVector3D(0, 100, 0));
             mObservers[i]->resize(OBSERVER_FBO_WIDTH, OBSERVER_FBO_HEIGHT);
             mObservers[i]->setHorizontalFov(90.0f);
-            mObservers[i]->setZNear(1.0f);
+            mObservers[i]->setZNear(10.0f);
             mObservers[i]->setZFar(1000.0f);
         }
 
@@ -82,6 +82,22 @@ void Controller::init()
         mObservers[3]->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(1, 0, 0), -90));
         mObservers[4]->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(0, 1, 0), 180));
         mObservers[5]->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(0, 1, 0), 0));
+
+        glGenFramebuffers(1, &mObserverFBO);
+        glGenTextures(1, &mObserverFBODepthMap);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, mObserverFBODepthMap);
+        for (unsigned int i = 0; i < 6; ++i)
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, OBSERVER_FBO_WIDTH, OBSERVER_FBO_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, mObserverFBO);
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, mObserverFBODepthMap, 0);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
     }
 
     createFramebuffers();
@@ -104,6 +120,27 @@ void Controller::render(float ifps)
     }
 
     // Terrain
+    glBindFramebuffer(GL_FRAMEBUFFER, mObserverFBO);
+    glViewport(0, 0, OBSERVER_FBO_WIDTH, OBSERVER_FBO_HEIGHT);
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    mShaderManager->bind(ShaderType::ObserverShader);
+
+    for (int i = 0; i < 6; i++)
+    {
+        mShaderManager->setUniformValue(QString("VPs[%1]").arg(i), mObservers[i]->getViewProjectionMatrix());
+    }
+
+    mShaderManager->setUniformValue("minElevation", mMinElevation);
+    mShaderManager->setUniformValue("maxElevation", mMaxElevation);
+    mShaderManager->setSampler("heightMap", 0, mHeightMap->textureId());
+    mShaderManager->setUniformValue("observerPosition", mObservers[0]->position());
+    mShaderManager->setUniformValue("farPlane", mObservers[0]->getZFar());
+
+    mTerrain->render();
+    mShaderManager->release();
+
+    // Terrain
     mFBOs[FramebufferType::Terrain]->bind();
     glViewport(0, 0, mWidth, mHeight);
     glClearColor(0, 0, 0, 1);
@@ -114,6 +151,10 @@ void Controller::render(float ifps)
     mShaderManager->setUniformValue("maxElevation", mMaxElevation);
     mShaderManager->setUniformValue("maxDistance", mMaxDistance);
     mShaderManager->setSampler("heightMap", 0, mHeightMap->textureId());
+    mShaderManager->setSampler("depthMap", 1, mObserverFBODepthMap, GL_TEXTURE_CUBE_MAP);
+    mShaderManager->setUniformValue("observerPosition", mObservers[0]->position());
+    mShaderManager->setUniformValue("farPlane", mObservers[0]->getZFar());
+    mShaderManager->setUniformValue("maxDistance", mMaxDistance);
     mTerrain->render();
     mShaderManager->release();
 

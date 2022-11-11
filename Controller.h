@@ -66,6 +66,9 @@ private:
     float mMinElevation;
     float mMaxElevation;
 
+    unsigned int mObserverFBO;
+    unsigned int mObserverFBODepthMap;
+
     // LOS Stuff
     QVector<FreeCamera *> mObservers;
     float mMaxDistance;
