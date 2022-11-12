@@ -7,6 +7,7 @@ uniform samplerCube depthMap;
 uniform vec3 observerPosition;
 uniform float farPlane;
 uniform float maxDistance;
+uniform float bias = 0.01;
 
 in vec2 fsTextureCoords;
 in vec3 fsFragWorldPosition;
@@ -20,6 +21,6 @@ void main()
     float closestDepth = texture(depthMap, fragToObserver).r * farPlane;
     float currentDepth = length(fragToObserver);
 
-    if(currentDepth < closestDepth)
+    if(currentDepth - bias * farPlane < closestDepth)
         outFragColor = mix(mix(vec4(0,1,0,1), vec4(1,0,0,1), currentDepth / maxDistance),outFragColor, 0.3f) ;
 }

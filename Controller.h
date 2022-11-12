@@ -77,6 +77,7 @@ private:
     bool mMouseMoving;
     QVector3D mMouseWorldPosition;
     bool mDebugEnabled;
+    float mBias;
 
     QMap<FramebufferType, QOpenGLFramebufferObjectFormat *> mFBOFormats;
     QMap<FramebufferType, QOpenGLFramebufferObject *> mFBOs;

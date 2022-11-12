@@ -16,8 +16,9 @@ Controller::Controller(QObject *parent)
     , mMaxDistance(1000.0f)
     , mObserverHeight(45.0f)
     , mLockObserver(false)
-    , mColorAttachments{GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1}
     , mDebugEnabled(false)
+    , mBias(0.005f)
+    , mColorAttachments{GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1}
 {
     mCamera3D = new FreeCamera;
     mCamera3D->setPosition(QVector3D(0, 1000, 0));
@@ -139,7 +140,6 @@ void Controller::render(float ifps)
         mShaderManager->setSampler("heightMap", 0, mHeightMap->textureId());
         mShaderManager->setUniformValue("observerPosition", mObservers[0]->position());
         mShaderManager->setUniformValue("farPlane", mObservers[0]->getZFar());
-
         mTerrain->render();
         mShaderManager->release();
     }
@@ -176,6 +176,7 @@ void Controller::render(float ifps)
         mShaderManager->setUniformValue("observerPosition", mObservers[0]->position());
         mShaderManager->setUniformValue("farPlane", mObservers[0]->getZFar());
         mShaderManager->setUniformValue("maxDistance", mMaxDistance);
+        mShaderManager->setUniformValue("bias", mBias);
         mTerrain->render();
         mShaderManager->release();
 
@@ -218,6 +219,7 @@ void Controller::drawGUI()
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Elevation");
         ImGui::SliderFloat("Min Elevation##RenderSettings", &mMinElevation, 1, 1000);
         ImGui::SliderFloat("Max Elevation##RenderSettings", &mMaxElevation, mMinElevation, 10000);
+        ImGui::SliderFloat("Bias##RenderSettings", &mBias, 0, 0.1);
         ImGui::Checkbox("Debug", &mDebugEnabled);
     }
 

@@ -28,6 +28,7 @@ bool ShaderManager::init()
         shader->addUniform("observerPosition");
         shader->addUniform("farPlane");
         shader->addUniform("maxDistance");
+        shader->addUniform("bias");
 
         shader->addAttribute("position");
         shader->addAttribute("textureCoords");
