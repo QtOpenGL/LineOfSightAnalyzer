@@ -17,9 +17,10 @@ Controller::Controller(QObject *parent)
     , mObserverHeight(45.0f)
     , mLockObserver(false)
     , mColorAttachments{GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1}
+    , mDebugEnabled(false)
 {
     mCamera3D = new FreeCamera;
-    mCamera3D->setPosition(QVector3D(0, 5000, 0));
+    mCamera3D->setPosition(QVector3D(0, 1000, 0));
     mCamera3D->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(1, 0, 0), -90));
     mCamera3D->setHorizontalFov(50.0f);
     mCamera3D->setZNear(1.0f);
@@ -75,13 +76,14 @@ void Controller::init()
             mObservers[i]->setZNear(10.0f);
             mObservers[i]->setZFar(1000.0f);
         }
+        auto rollFix = QQuaternion::fromAxisAndAngle(QVector3D(0, 0, 1), 180);
 
-        mObservers[0]->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(0, 1, 0), 90));
-        mObservers[1]->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(0, 1, 0), 270));
+        mObservers[0]->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(0, 1, 0), -90) * rollFix);
+        mObservers[1]->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(0, 1, 0), 90) * rollFix);
         mObservers[2]->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(1, 0, 0), 90));
         mObservers[3]->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(1, 0, 0), -90));
-        mObservers[4]->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(0, 1, 0), 180));
-        mObservers[5]->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(0, 1, 0), 0));
+        mObservers[4]->setRotation(QQuaternion::fromAxisAndAngle(QVector3D(0, 1, 0), 180) * rollFix);
+        mObservers[5]->setRotation(rollFix);
 
         glGenFramebuffers(1, &mObserverFBO);
         glGenTextures(1, &mObserverFBODepthMap);
@@ -115,63 +117,82 @@ void Controller::render(float ifps)
     for (int i = 0; i < 6; i++)
     {
         if (!mLockObserver)
-            mObservers[i]->setPosition(QVector3D(mMouseWorldPosition.x(), mMouseWorldPosition.y() + mObserverHeight, mMouseWorldPosition.z()));
+            mObservers[i]->setPosition(mMouseWorldPosition + QVector3D(0, mObserverHeight, 0));
         mObservers[i]->setZFar(mMaxDistance);
     }
 
-    // Terrain
-    glBindFramebuffer(GL_FRAMEBUFFER, mObserverFBO);
-    glViewport(0, 0, OBSERVER_FBO_WIDTH, OBSERVER_FBO_HEIGHT);
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    mShaderManager->bind(ShaderType::ObserverShader);
-
-    for (int i = 0; i < 6; i++)
+    // Observer
     {
-        mShaderManager->setUniformValue(QString("VPs[%1]").arg(i), mObservers[i]->getViewProjectionMatrix());
+        glBindFramebuffer(GL_FRAMEBUFFER, mObserverFBO);
+        glViewport(0, 0, OBSERVER_FBO_WIDTH, OBSERVER_FBO_HEIGHT);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        mShaderManager->bind(ShaderType::ObserverShader);
+
+        for (int i = 0; i < 6; i++)
+        {
+            mShaderManager->setUniformValue(QString("VPs[%1]").arg(i), mObservers[i]->getViewProjectionMatrix());
+        }
+
+        mShaderManager->setUniformValue("minElevation", mMinElevation);
+        mShaderManager->setUniformValue("maxElevation", mMaxElevation);
+        mShaderManager->setSampler("heightMap", 0, mHeightMap->textureId());
+        mShaderManager->setUniformValue("observerPosition", mObservers[0]->position());
+        mShaderManager->setUniformValue("farPlane", mObservers[0]->getZFar());
+
+        mTerrain->render();
+        mShaderManager->release();
     }
 
-    mShaderManager->setUniformValue("minElevation", mMinElevation);
-    mShaderManager->setUniformValue("maxElevation", mMaxElevation);
-    mShaderManager->setSampler("heightMap", 0, mHeightMap->textureId());
-    mShaderManager->setUniformValue("observerPosition", mObservers[0]->position());
-    mShaderManager->setUniformValue("farPlane", mObservers[0]->getZFar());
+    // DEBUG
+    if (mDebugEnabled)
+    {
+        QOpenGLFramebufferObject::bindDefault();
+        glViewport(0, 0, mWidth, mHeight);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    mTerrain->render();
-    mShaderManager->release();
+        mShaderManager->bind(ShaderType::DebugShader);
+        mShaderManager->setUniformValue("IVP", mActiveCamera->getRotationMatrix().inverted() * mActiveCamera->getProjectionMatrix().inverted());
+        mShaderManager->setSampler("depthMap", 1, mObserverFBODepthMap, GL_TEXTURE_CUBE_MAP);
+        mQuad->render();
+        mShaderManager->release();
+    }
 
     // Terrain
-    mFBOs[FramebufferType::Terrain]->bind();
-    glViewport(0, 0, mWidth, mHeight);
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    mShaderManager->bind(ShaderType::TerrainShader);
-    mShaderManager->setUniformValue("VP", mActiveCamera->getViewProjectionMatrix());
-    mShaderManager->setUniformValue("minElevation", mMinElevation);
-    mShaderManager->setUniformValue("maxElevation", mMaxElevation);
-    mShaderManager->setUniformValue("maxDistance", mMaxDistance);
-    mShaderManager->setSampler("heightMap", 0, mHeightMap->textureId());
-    mShaderManager->setSampler("depthMap", 1, mObserverFBODepthMap, GL_TEXTURE_CUBE_MAP);
-    mShaderManager->setUniformValue("observerPosition", mObservers[0]->position());
-    mShaderManager->setUniformValue("farPlane", mObservers[0]->getZFar());
-    mShaderManager->setUniformValue("maxDistance", mMaxDistance);
-    mTerrain->render();
-    mShaderManager->release();
+    if (!mDebugEnabled)
+    {
+        mFBOs[FramebufferType::Terrain]->bind();
+        glViewport(0, 0, mWidth, mHeight);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        mShaderManager->bind(ShaderType::TerrainShader);
+        mShaderManager->setUniformValue("VP", mActiveCamera->getViewProjectionMatrix());
+        mShaderManager->setUniformValue("minElevation", mMinElevation);
+        mShaderManager->setUniformValue("maxElevation", mMaxElevation);
+        mShaderManager->setUniformValue("maxDistance", mMaxDistance);
+        mShaderManager->setSampler("heightMap", 0, mHeightMap->textureId());
+        mShaderManager->setSampler("depthMap", 1, mObserverFBODepthMap, GL_TEXTURE_CUBE_MAP);
+        mShaderManager->setUniformValue("observerPosition", mObservers[0]->position());
+        mShaderManager->setUniformValue("farPlane", mObservers[0]->getZFar());
+        mShaderManager->setUniformValue("maxDistance", mMaxDistance);
+        mTerrain->render();
+        mShaderManager->release();
 
-    // Default
-    QOpenGLFramebufferObject::bindDefault();
-    glViewport(0, 0, mWidth, mHeight);
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        QOpenGLFramebufferObject::bindDefault();
+        glViewport(0, 0, mWidth, mHeight);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    QOpenGLFramebufferObject::blitFramebuffer(nullptr, //
-                                              QRect(0, 0, mWidth, mHeight),
-                                              mFBOs[FramebufferType::Terrain],
-                                              QRect(0, 0, mFBOs[FramebufferType::Terrain]->width(), mFBOs[FramebufferType::Terrain]->height()),
-                                              GL_COLOR_BUFFER_BIT,
-                                              GL_NEAREST,
-                                              0,
-                                              0);
+        QOpenGLFramebufferObject::blitFramebuffer(nullptr, //
+                                                  QRect(0, 0, mWidth, mHeight),
+                                                  mFBOs[FramebufferType::Terrain],
+                                                  QRect(0, 0, mFBOs[FramebufferType::Terrain]->width(), mFBOs[FramebufferType::Terrain]->height()),
+                                                  GL_COLOR_BUFFER_BIT,
+                                                  GL_NEAREST,
+                                                  0,
+                                                  0);
+    }
 
     // ImGui Stuff
     QtImGui::newFrame();
@@ -183,6 +204,8 @@ void Controller::render(float ifps)
 
 void Controller::drawGUI()
 {
+    auto viewDir = mActiveCamera->getViewDirection();
+
     ImGui::SetNextWindowSize(ImVec2(420, 820), ImGuiCond_FirstUseEver);
     ImGui::Begin("Controls");
 
@@ -195,16 +218,18 @@ void Controller::drawGUI()
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Elevation");
         ImGui::SliderFloat("Min Elevation##RenderSettings", &mMinElevation, 1, 1000);
         ImGui::SliderFloat("Max Elevation##RenderSettings", &mMaxElevation, mMinElevation, 10000);
+        ImGui::Checkbox("Debug", &mDebugEnabled);
     }
 
     ImGui::Spacing();
     ImGui::TextColored(ImVec4(1, 1, 0, 1), "Info");
     ImGui::Text("Observer Position: (%.1f, %.1f,%.1f)", mObservers[0]->position().x(), mObservers[0]->position().y(), mObservers[0]->position().z());
     ImGui::Text("Mouse World Position: (%.1f, %.1f, %.1f)", mMouseWorldPosition[0], mMouseWorldPosition[1], mMouseWorldPosition[2]);
+    ImGui::Text("Camera View Direction: (%.1f, %.1f, %.1f)", viewDir.x(), viewDir.y(), viewDir.z());
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
     ImGui::Spacing();
     ImGui::TextColored(ImVec4(1, 1, 0, 1), "Hints");
-
     ImGui::Text("Observer Lock / Unlock: L");
     ImGui::Text("Go to Observer's Position: G");
     ImGui::Text("Camera Speed Fast: Shift");
@@ -283,7 +308,6 @@ void Controller::keyPressed(QKeyEvent *event)
     else if (event->key() == Qt::Key_G)
     {
         mCamera3D->setPosition(mObservers[0]->position());
-        mCamera3D->setRotation(mObservers[0]->rotation());
         mCamera3D->resize(mWidth, mHeight);
         setActiveCamera(mCamera3D);
     } else

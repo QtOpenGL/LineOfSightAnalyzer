@@ -27,6 +27,7 @@ public:
     virtual QMatrix4x4 getViewMatrix();
     virtual QMatrix4x4 getViewProjectionMatrix();
     virtual QMatrix4x4 getRotationMatrix();
+    virtual QVector3D getViewDirection();
 
     bool active() const;
     void setActive(bool newActive);

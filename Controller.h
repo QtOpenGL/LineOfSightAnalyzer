@@ -76,6 +76,7 @@ private:
     bool mLockObserver;
     bool mMouseMoving;
     QVector3D mMouseWorldPosition;
+    bool mDebugEnabled;
 
     QMap<FramebufferType, QOpenGLFramebufferObjectFormat *> mFBOFormats;
     QMap<FramebufferType, QOpenGLFramebufferObject *> mFBOs;

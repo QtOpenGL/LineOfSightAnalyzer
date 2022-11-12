@@ -25,6 +25,7 @@ enum class ShaderType { //
     None,
     TerrainShader,
     ObserverShader,
+    DebugShader
 };
 
 #endif // COMMON_H

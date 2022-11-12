@@ -59,6 +59,23 @@ bool ShaderManager::init()
             return false;
     }
 
+    // Debug Shader
+    {
+        Shader *shader = new Shader(ShaderType::DebugShader);
+        mShaders.insert(shader->type(), shader);
+
+        shader->addPath(QOpenGLShader::Vertex, ":/Resources/Shaders/Debug.vert");
+        shader->addPath(QOpenGLShader::Fragment, ":/Resources/Shaders/Debug.frag");
+
+        shader->addUniform("IVP");
+        shader->addUniform("depthMap");
+
+        shader->addAttribute("position");
+
+        if (!shader->init())
+            return false;
+    }
+
     return true;
 }
 

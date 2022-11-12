@@ -8,5 +8,7 @@
         <file>Resources/Shaders/Observer.vert</file>
         <file>Resources/Shaders/Observer.geom</file>
         <file>Resources/Shaders/Observer.frag</file>
+        <file>Resources/Shaders/Debug.frag</file>
+        <file>Resources/Shaders/Debug.vert</file>
     </qresource>
 </RCC>

@@ -34,6 +34,11 @@ QMatrix4x4 Camera::getRotationMatrix()
     return rotation;
 }
 
+QVector3D Camera::getViewDirection()
+{
+    return mRotation * QVector3D(0, 0, -1);
+}
+
 void Camera::resize(int width, int height)
 {
     mWidth = width;
