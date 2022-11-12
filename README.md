@@ -1,4 +1,4 @@
-# LineOfSightAnalyzer
+# Line Of Sight Analyzer
 This line of sight analyzer is implemented without using ray casting techniques. Instead, I used omnidirectional shadow mapping idea in order to generate LOS map.
 
 ## Build
