@@ -119,6 +119,10 @@ void Controller::render(float ifps)
     {
         if (!mLockObserver)
             mObservers[i]->setPosition(mMouseWorldPosition + QVector3D(0, mObserverHeight, 0));
+
+        if (mDebugEnabled)
+            mObservers[i]->setPosition(mCamera3D->position());
+
         mObservers[i]->setZFar(mMaxDistance);
     }
 
@@ -153,7 +157,7 @@ void Controller::render(float ifps)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         mShaderManager->bind(ShaderType::DebugShader);
-        mShaderManager->setUniformValue("IVP", mActiveCamera->getRotationMatrix().inverted() * mActiveCamera->getProjectionMatrix().inverted());
+        mShaderManager->setUniformValue("IVP", mCamera3D->getRotationMatrix().inverted() * mCamera3D->getProjectionMatrix().inverted());
         mShaderManager->setSampler("depthMap", 1, mObserverFBODepthMap, GL_TEXTURE_CUBE_MAP);
         mQuad->render();
         mShaderManager->release();
@@ -216,9 +220,12 @@ void Controller::drawGUI()
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Observer");
         ImGui::SliderFloat("Max Distance##ObserverSettings", &mMaxDistance, 1, 5000);
         ImGui::SliderFloat("Height##ObserverSettings", &mObserverHeight, 0, 1000);
+
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Elevation");
         ImGui::SliderFloat("Min Elevation##RenderSettings", &mMinElevation, 1, 1000);
         ImGui::SliderFloat("Max Elevation##RenderSettings", &mMaxElevation, mMinElevation, 10000);
+
+        ImGui::TextColored(ImVec4(1, 1, 0, 1), "Debug");
         ImGui::SliderFloat("Bias##RenderSettings", &mBias, 0, 0.1);
         ImGui::Checkbox("Debug", &mDebugEnabled);
     }
