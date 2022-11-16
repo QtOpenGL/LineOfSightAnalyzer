@@ -5,7 +5,7 @@ The application runs at 144 FPS (V-Sync enabled) on my PC.
 ## Build
 Clone the repo `git clone --recurse-submodules https://github.com/berkbavas/LineOfSightAnalyzer.git`.
 
-Compile using `Qt 6.3.0 MSVC2019 64bit` kit. Other compilers should also work.
+Compile with `Qt 6.3.0 MSVC2019 64bit` kit.
 
 ## Screenshots
 
