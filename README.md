@@ -3,9 +3,15 @@ This line of sight analyzer is implemented without using ray casting techniques.
 The application runs at 144 FPS (V-Sync enabled) on my PC.
 
 ## Build
-Clone the repo `git clone --recurse-submodules https://github.com/berkbavas/LineOfSightAnalyzer.git`.
-
-Compile with `Qt 6.3.0 MSVC2019 64bit` kit.
+1) Install `CMake 3.25.1`.
+2) Install `Visual Studio 2019 and MSVC C++ Compiler`.
+3) Install `Qt 5.15.2 MSVC2019 64bit` kit.
+4) Clone the repo `git clone https://github.com/berkbavas/LineOfSightAnalyzer.git`.
+5) Create a folder `mkdir Build`.
+6) Enter the folder `cd Build`.
+7) Run CMake `cmake ..`.
+8) Open `LineOfSightAnalyzer.sln` with `Visual Studio 2019`.
+9) Build & Run.
 
 ## Screenshots
 
