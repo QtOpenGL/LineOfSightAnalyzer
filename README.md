@@ -11,7 +11,7 @@ The application runs at 144 FPS (V-Sync enabled) on my PC.
 6) Enter the folder `cd Build`.
 7) Run CMake `cmake ..`.
 8) Open `LineOfSightAnalyzer.sln` with `Visual Studio 2019`.
-9) Build & Run.
+9) Build & Run with `Release` config.
 
 ## Screenshots
 
